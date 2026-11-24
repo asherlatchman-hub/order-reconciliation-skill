@@ -1,5 +1,7 @@
 # Order Reconciliation Skill
 
+**Live case study:** https://asherlatchman-hub.github.io/order-reconciliation-skill/
+
 A custom **Claude Skill** that reconciles a seller order export against a warehouse/fulfilment export and produces an Excel **exception report** for an operations team to review.
 
 Upload two spreadsheets and Claude runs the same checks every time, without the process being explained again:

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Reconciliation Skill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a project case study a hiring manager scans in a minute
+   IDEA a dispatch manifest / timetable: strict left edge, thick rules, figures hanging in a left column
+   PICTURE every one of the 80 compared order lines drawn as a cell, coloured by what the skill found
+   COLOUR white ground, black ink, signal red for exceptions, one grey; amber-free; night #0e0e0e
+   TYPE Archivo 800 at width 112 for display and figures, Archivo for text
+   LAYOUT title across the top, picture full width beneath (inputs left, grid right); phone stacks title, inputs, grid */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0e0e0e);--ink:light-dark(#111,#f2f2f2);--mute:light-dark(#5d5d5d,#a9a9a9);--rule:light-dark(#111,#f2f2f2);--line:light-dark(#d9d9d9,#2c2c2c);--panel:light-dark(#f3f3f3,#191919);--red:light-dark(#e4002b,#ff3b55);--ok:light-dark(#111,#e8e8e8);--qty:light-dark(#e4002b,#ff3b55);--mw:light-dark(#8e001b,#ff8a9a);--ms:light-dark(#9a9a9a,#6f6f6f);--bad:light-dark(#fff,#0e0e0e)}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:24px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Archivo,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(28px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1,h2,.num{font-family:Archivo,system-ui,sans-serif;font-variation-settings:"wdth" 112;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+h1{font-size:clamp(34px,5.2vw,52px);margin:0;text-wrap:balance;max-width:16ch}
+h2{font-size:clamp(24px,3vw,32px);margin:0 0 18px;text-wrap:balance}
+p{margin:0 0 14px;max-width:66ch}
+.top{border-top:10px solid var(--red)}
+.head{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px 48px;align-items:end;padding-bottom:28px;border-bottom:3px solid var(--rule)}
+.lede{font-size:17px;color:var(--ink);margin:0}
+.meta{color:var(--mute);font-size:14px;margin-top:14px}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 0}
+.btn{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;background:var(--ink);color:var(--bg);font-weight:700;font-size:15px;text-decoration:none;border:2px solid var(--ink)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.tag{display:inline-block;background:var(--red);color:#fff;font-weight:700;font-size:14px;padding:4px 10px;margin-bottom:16px}
+.pic{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:32px;padding-top:28px}
+.files{display:grid;gap:14px;align-content:start}
+.file{border:2px solid var(--rule);padding:14px 16px;background:var(--bg)}
+.file b{display:block;font-size:16px}
+.file span{color:var(--mute);font-size:14px;overflow-wrap:anywhere}
+.file .num{font-size:40px;display:block;margin-top:6px}
+.arrow{font-weight:800;font-size:15px;color:var(--mute);padding-left:4px}
+.skill{background:var(--ink);color:var(--bg);padding:14px 16px}
+.skill b{display:block}
+.skill span{font-size:14px;opacity:.8}
+.gridbox h3{font-size:17px;margin:0 0 12px;font-weight:700}
+.cells{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:5px}
+.c{aspect-ratio:1;border-radius:2px;background:var(--ok);transform:scale(.4);opacity:0;animation:pop .35s ease-out forwards}
+.c.qty{background:var(--qty)}
+.c.mw{background:var(--mw)}
+.c.ms{background:var(--ms)}
+.c.bad{background:var(--bad);outline:2px solid var(--red);outline-offset:-2px}
+@keyframes pop{to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.c{animation:none;transform:none;opacity:1}}
+.legend{list-style:none;margin:18px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(13em,1fr));gap:10px 24px}
+.legend li{display:grid;grid-template-columns:auto 3.2ch minmax(0,1fr);gap:10px;align-items:baseline;border-top:1px solid var(--line);padding-top:8px}
+.legend i{width:14px;height:14px;display:inline-block;border-radius:2px;align-self:center}
+.legend .num{font-size:22px;text-align:right}
+.legend small{font-size:14px;color:var(--mute);display:block}
+.also{margin-top:16px;font-size:14px;color:var(--mute)}
+.rows{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px 56px}
+.figrow{display:grid;grid-template-columns:7.5ch minmax(0,1fr);gap:16px;border-top:3px solid var(--rule);padding-top:14px;margin-bottom:22px}
+.figrow .num{font-size:clamp(34px,4vw,48px);color:var(--red)}
+.figrow p{margin:0}
+.figrow b{display:block}
+ol.steps{list-style:none;margin:0;padding:0;border-top:3px solid var(--rule)}
+ol.steps li{display:grid;grid-template-columns:11em minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}
+ol.steps b{font-weight:700}
+.alt{background:var(--panel)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th{text-align:left;font-weight:700;border-bottom:3px solid var(--rule);padding:8px 10px;white-space:nowrap}
+td{border-bottom:1px solid var(--line);padding:8px 10px;vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.yes{color:var(--red);font-weight:700;white-space:nowrap}
+.cap{font-size:14px;color:var(--mute);margin-top:10px}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px 48px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tabs button{font:inherit;font-size:15px;min-height:44px;padding:8px 14px;border:2px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.tabs button:focus-visible,.copy:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.codebox{position:relative}
+pre{background:var(--ink);color:var(--bg);padding:18px;font:13.5px/1.55 ui-monospace,Menlo,Consolas,monospace;overflow-x:auto;margin:0}
+.copy{position:absolute;top:10px;right:10px;font:inherit;font-size:14px;min-height:36px;padding:6px 12px;background:var(--red);color:#fff;border:0;cursor:pointer}
+.stack3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.stack3 div{border-top:3px solid var(--rule);padding-top:12px}
+.stack3 b{display:block;margin-bottom:6px}
+footer{border-top:10px solid var(--red);font-size:14px;color:var(--mute)}
+footer p{max-width:none}
+@media(max-width:860px){.head,.rows,.split{grid-template-columns:minmax(0,1fr)}.pic{grid-template-columns:minmax(0,1fr)}.files{grid-template-columns:repeat(auto-fit,minmax(12em,1fr))}.arrow{display:none}}
+@media(max-width:600px){.cells{grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}ol.steps li{grid-template-columns:minmax(0,1fr);gap:2px}.stack3{grid-template-columns:minmax(0,1fr)}table{font-size:13px}th,td{padding:6px 5px}.figrow{grid-template-columns:5.5ch minmax(0,1fr)}}
+</style>
+</head>
+<body>
+
+<header class="band top">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <span class="tag">Custom Claude Skill</span>
+        <h1>Order reconciliation, done the same way every time</h1>
+      </div>
+      <div>
+        <p class="lede">A reusable Claude Skill that takes a seller order export and a warehouse export, matches them line by line, and hands the operations team an Excel exception report showing what went wrong and where.</p>
+        <p class="meta">Built with Claude Skills, Python, pandas and openpyxl. Results below are from a test run on synthetic data.</p>
+        <p class="links"><a class="btn" href="https://github.com/asherlatchman-hub/order-reconciliation-skill">View the code on GitHub</a><a class="btn ghost" href="https://github.com/asherlatchman-hub/order-reconciliation-skill/raw/main/samples/exception_report.xlsx">Download the sample report</a></p>
+      </div>
+    </div>
+
+    <div class="pic">
+      <div class="files">
+        <div class="file"><b>Seller orders</b><span>seller_orders.xlsx · Order ID, SKU, Quantity</span><span class="num">80</span><span>order lines</span></div>
+        <div class="file"><b>Warehouse orders</b><span>warehouse_orders.csv · order_no, product_code, qty_shipped</span><span class="num">78</span><span>order lines</span></div>
+        <div class="arrow">↓ both files into the skill</div>
+        <div class="skill"><b>order-reconciliation</b><span>Detects columns, normalises IDs, matches on order ID + SKU</span></div>
+      </div>
+      <div class="gridbox">
+        <h3>Each square is one order line the skill compared. 66 of 80 matched cleanly; 14 need attention.</h3>
+        <div class="cells" id="cells" role="img" aria-label="80 order lines: 66 matched, 7 quantity discrepancies, 4 missing from warehouse, 2 missing from seller, 1 unreadable"></div>
+        <ul class="legend" id="legend"></ul>
+        <p class="also">Also flagged: 6 duplicate lines (3 repeated rows) and 1 row with a blank order ID.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="band">
+  <div class="wrap rows">
+    <div>
+      <h2>Why this is worth automating</h2>
+      <p>When orders are sold on one system and fulfilled on another, the two records drift apart. Orders get dropped, quantities are keyed wrong, rows are exported twice, and ID formats don't quite match.</p>
+      <p>Checking them by hand means filtering two spreadsheets side by side, which is slow and error-prone, and it has to be done again every day or week. It's the kind of repetitive task a well-defined AI workflow handles well.</p>
+      <p>Because it's a skill rather than a one-off prompt, the process lives in a file. Anyone on the team can upload two exports and get the same checks and the same report layout every time, without explaining the process again.</p>
+    </div>
+    <div>
+      <div class="figrow"><span class="num">4</span><p><b>Sold, never shipped</b>The most expensive kind of exception: a customer has paid and is waiting.</p></div>
+      <div class="figrow"><span class="num">7</span><p><b>Quantity mismatches</b>Short- or over-shipped lines. 3 are marked as possibly caused by duplicate rows, so they aren't chased twice.</p></div>
+      <div class="figrow"><span class="num">+5</span><p><b>Net units over-shipped</b>Warehouse units minus seller units across all mismatched lines.</p></div>
+      <div class="figrow"><span class="num">2</span><p><b>Shipped with no sale</b>Possible stock loss, a test order or a mistyped ID.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <h2>How the skill works</h2>
+    <ol class="steps">
+      <li><b>Identify the files</b><span>Works out which export is the seller's and which is the warehouse's from file and column names, and asks once if it's unclear.</span></li>
+      <li><b>Find the columns</b><span>Recognises common names automatically (Order ID, order_no, Ref; SKU, product_code; Quantity, qty_shipped), with overrides for unusual exports.</span></li>
+      <li><b>Clean and match</b><span>Trims and upper-cases IDs so <code>gn-10401</code> matches <code>GN-10401</code>, then matches on order ID + SKU, since one order can hold several products.</span></li>
+      <li><b>Classify exceptions</b><span>Missing on either side, quantity differences, duplicates within a file, and data that can't be read.</span></li>
+      <li><b>Sanity-check</b><span>If the match rate is very low, Claude checks for a wrong column or an ID-format difference before reporting.</span></li>
+      <li><b>Deliver the report</b><span>A formatted Excel file with a summary tab and one tab per exception type, plus a short chat summary that names the orders to chase first.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <h2>Tested against problems planted on purpose</h2>
+    <p>I generated two test exports and deliberately broke them in every way the skill is meant to catch. It found all of them.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Problem planted</th><th class="n">Planted</th><th class="n">Found</th><th>Where it appears</th></tr></thead>
+        <tbody id="tests"></tbody>
+      </table>
+    </div>
+    <p class="cap">All data is synthetic, generated for testing. No real customer or company data was used.</p>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap split">
+    <div>
+      <h2>What the report looks like</h2>
+      <p>Each tab has frozen headers and filters so the team can sort and work through it. Here are the actual rows from the test run.</p>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="scroll"><table id="sheet"></table></div>
+    </div>
+    <div>
+      <h2>Three design decisions</h2>
+      <div class="stack3" style="grid-template-columns:minmax(0,1fr)">
+        <div><b>Match on order ID + SKU, not ID alone</b>An order with a T-shirt and a mug is two lines. Matching on ID alone would hide a missing mug.</div>
+        <div><b>Sum duplicates before comparing quantities</b>A repeated row shouldn't count as both a duplicate and a separate quantity problem, so the skill links them with a note.</div>
+        <div><b>Unreadable rows go to Data Quality</b>A quantity typed as "two" is a data-entry fault to fix at source, not a missing order, so it isn't reported as one.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap split">
+    <div>
+      <h2>What's inside the skill</h2>
+      <p><b>SKILL.md</b> tells Claude when to use the skill, the six-step workflow, how to check its own result and how to present findings.</p>
+      <p><b>reconcile.py</b> is a deterministic Python script (pandas + openpyxl) that does the matching and builds the report. The logic lives in code rather than in the prompt, so the same inputs always give the same output, and the AI part handles the judgement: reading the files, catching odd formats and explaining the results.</p>
+      <p>It works with CSV or Excel files of any size, prints a JSON summary for Claude to explain, and writes an Excel report.</p>
+    </div>
+    <div class="codebox">
+      <button class="copy" id="copy" type="button">Copy</button>
+<pre id="code"><code># Sum duplicates, then line the two files up on the same key
+key = ["order_id", "sku"]
+s_agg = s.groupby(key, as_index=False)["qty"].sum()
+w_agg = w.groupby(key, as_index=False)["qty"].sum()
+merged = s_agg.merge(w_agg, on=key, how="outer",
+                     suffixes=("_seller", "_wh"), indicator=True)
+
+missing_wh     = merged[merged["_merge"] == "left_only"]
+missing_seller = merged[merged["_merge"] == "right_only"]
+
+both = merged[merged["_merge"] == "both"]
+qty  = both[both["qty_seller"] != both["qty_wh"]].copy()
+qty["difference"] = qty["qty_wh"] - qty["qty_seller"]</code></pre>
+      <p class="cap">Simplified excerpt of the matching logic in reconcile.py.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="band">
+  <div class="wrap">
+    <p>Order Reconciliation Skill: a portfolio project showing custom Claude Skill development for e-commerce operations. All sample data is synthetic. Source code: <a href="https://github.com/asherlatchman-hub/order-reconciliation-skill" style="color:inherit">github.com/asherlatchman-hub/order-reconciliation-skill</a></p>
+  </div>
+</footer>
+
+<script>
+{
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const cats = [
+    {k:'ok', n:66, label:'Matched cleanly', note:'Same order, SKU and quantity on both sides', col:'var(--ok)'},
+    {k:'qty', n:7, label:'Quantity mismatch', note:'Short- or over-shipped', col:'var(--qty)'},
+    {k:'mw', n:4, label:'Missing from warehouse', note:'Sold, not shipped', col:'var(--mw)'},
+    {k:'ms', n:2, label:'Missing from seller', note:'Shipped, no matching sale', col:'var(--ms)'},
+    {k:'bad', n:1, label:'Unreadable quantity', note:'"two" instead of 2', col:'var(--bad);outline:2px solid var(--red);outline-offset:-2px'}
+  ];
+  const cells = document.getElementById('cells');
+  let html = '', i = 0;
+  for (const c of cats) for (let j = 0; j < c.n; j++) { html += `<span class="c ${c.k}" style="animation-delay:${(i*12)}ms"></span>`; i++; }
+  cells.innerHTML = html;
+  document.getElementById('legend').innerHTML = cats.map(c =>
+    `<li><i style="background:${c.col}"></i><span class="num">${c.n}</span><span>${esc(c.label)}<small>${esc(c.note)}</small></span></li>`).join('');
+
+  const tests = [
+    ['Orders sold but never shipped', '3 orders (4 lines)', '4 lines', 'Missing from Warehouse'],
+    ['Shipments with no matching sale', '2', '2', 'Missing from Seller'],
+    ['Quantities changed in the warehouse file', '4', '4', 'Quantity Discrepancies'],
+    ['Rows exported twice', '3 rows', '6 lines', 'Duplicates (+3 linked quantity notes)'],
+    ['Quantity typed as text ("two")', '1', '1', 'Data Quality'],
+    ['Blank order ID', '1', '1', 'Data Quality'],
+    ['Order IDs typed in lowercase', '14 rows', 'All matched', 'Normalised, not flagged']
+  ];
+  document.getElementById('tests').innerHTML = tests.map(t =>
+    `<tr><td>${esc(t[0])}</td><td class="n">${esc(t[1])}</td><td class="n"><span class="yes">✓ ${esc(t[2])}</span></td><td>${esc(t[3])}</td></tr>`).join('');
+
+  const sheets = {
+    'Missing from Warehouse': {h:['Order ID','SKU','Seller qty'], n:[2], r:[
+      ['GN-10412','GN-TEE-WHT-L',3],['GN-10437','GN-HOOD-GRY-M',1],['GN-10455','GN-BAG-TOTE',2],['GN-10455','GN-BTL-750',1]]},
+    'Quantity Discrepancies': {h:['Order ID','SKU','Seller','Warehouse','Diff','Issue'], n:[2,3,4], r:[
+      ['GN-10404','GN-TEE-BLK-M',1,2,'+1','Over · see duplicates'],['GN-10406','GN-TEE-WHT-L',2,0,'−2','Short-shipped'],
+      ['GN-10413','GN-HOOD-GRY-M',3,5,'+2','Over-shipped'],['GN-10416','GN-TEE-BLK-M',2,4,'+2','Over · see duplicates'],
+      ['GN-10423','GN-CAP-NVY',1,2,'+1','Over-shipped'],['GN-10424','GN-BTL-750',4,2,'−2','Short · see duplicates'],
+      ['GN-10434','GN-MUG-01',1,4,'+3','Over-shipped']]},
+    'Missing from Seller': {h:['Order ID','SKU','Warehouse qty'], n:[2], r:[
+      ['GN-10399','GN-MUG-01',2],['GN-10501','GN-CAP-NVY',1]]},
+    'Data Quality': {h:['File','Row','Order ID','Problem'], n:[1], r:[
+      ['Seller',81,'','Blank order ID'],['Warehouse',35,'GN-10427',"Quantity not a number: 'two'"]]}
+  };
+  const tabs = document.getElementById('tabs'), sheet = document.getElementById('sheet');
+  const names = Object.keys(sheets);
+  tabs.innerHTML = names.map((n,k) => `<button type="button" role="tab" id="tab-${k}" aria-selected="${k===0}">${esc(n)}</button>`).join('');
+  const show = k => {
+    const s = sheets[names[k]];
+    const cls = j => s.n.includes(j) ? ' class="n"' : '';
+    sheet.innerHTML = `<thead><tr>${s.h.map((h,j)=>`<th${cls(j)}>${esc(h)}</th>`).join('')}</tr></thead><tbody>${
+      s.r.map(r=>`<tr>${r.map((v,j)=>`<td${cls(j)}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    tabs.querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-selected', String(j===k)));
+  };
+  tabs.addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(Number(b.id.slice(4))); });
+  show(1);
+
+  const copy = document.getElementById('copy');
+  copy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(document.getElementById('code').innerText); copy.textContent = 'Copied'; }
+    catch (e) { copy.textContent = 'Select and copy'; }
+    setTimeout(() => copy.textContent = 'Copy', 1800);
+  });
+}
+</script>
+</body>
+</html>
